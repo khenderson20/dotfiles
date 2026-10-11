@@ -1,0 +1,31 @@
+# Shared git config for every OS. ~/.gitconfig includes this file plus
+# gitconfig.windows or gitconfig.unix (install.ps1 sets that up), and
+# keeps anything machine-specific (credential helpers, work email).
+
+[user]
+	name = Kevin Henderson
+	email = 24301654+khenderson20@users.noreply.github.com
+	signingkey = 01EEDF3610103724
+[commit]
+	gpgsign = true
+[tag]
+	gpgsign = true
+[core]
+	editor = code --wait
+	longpaths = true
+[init]
+	defaultBranch = main
+[fetch]
+	prune = true
+[push]
+	autoSetupRemote = true
+[rerere]
+	enabled = true
+[diff]
+	algorithm = histogram
+[merge]
+	conflictstyle = zdiff3
+[branch]
+	sort = -committerdate
+[help]
+	autocorrect = prompt

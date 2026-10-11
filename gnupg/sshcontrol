@@ -1,0 +1,5 @@
+# Keys gpg-agent may offer to ssh (keygrips, not secrets).
+# install.ps1 adds any missing lines to the real sshcontrol.
+
+# Kevin Henderson, auth subkey 528EC091EF849BBA [A]
+71DBF5D49C8992BE4CF73F266B26227BE0D5967C 0

@@ -1,0 +1,13 @@
+# Shared SSH config. install.ps1 copies this to ~/.ssh/dotfiles.config and
+# includes it from the top of ~/.ssh/config (ssh won't read a config file
+# other users can write, so it can't be used from the repo directly).
+# Re-run install.ps1 after editing. ~/.ssh/config keeps machine-specific hosts.
+
+Host github.com
+  HostName github.com
+  User git
+  # GPG auth subkey 528EC091EF849BBA, served by gpg-agent. This .pub file
+  # (copied to ~/.ssh by install.ps1) only tells ssh which agent key to use;
+  # the private key never leaves GnuPG.
+  IdentityFile ~/.ssh/gpg-auth-528EC091EF849BBA.pub
+  IdentitiesOnly yes

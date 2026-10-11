@@ -1,0 +1,8 @@
+# Windows-only git settings.
+
+[core]
+	# Windows OpenSSH can reach gpg-agent's SSH pipe; Git's bundled ssh can't
+	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
+[gpg]
+	# Gpg4win's gpg, not the one bundled with Git (different keyring)
+	program = C:/Program Files/GnuPG/bin/gpg.exe

@@ -1,0 +1,4 @@
+# Installed-app lists: useful when setting up a new machine, but they
+# reveal what's installed here, and this repo is public. Keep them local
+# (and in a private backup) instead.
+packages/

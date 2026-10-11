@@ -1,11 +1,8 @@
-#!/usr/bin/env bash
-
-# ~/.bash_functions
+# Functions shared by bash and zsh. Sourced by bash/.bashrc and zsh/.zshrc.
 
 # Function to create a directory and move into it
 mkcd () {
-    mkdir -p "$1"
-    cd "$1" || exit
+    mkdir -p "$1" && cd "$1" || return
 }
 
 # Function to find large files
@@ -34,4 +31,3 @@ extract () {
         echo "'$1' is not a valid file"
     fi
 }
-

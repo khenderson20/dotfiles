@@ -1,0 +1,4 @@
+# macOS / Linux git settings.
+
+[gpg]
+	program = gpg
