@@ -32,6 +32,7 @@ alias myip="curl ifconfig.me"
 # ($DEV_HOME, else C:\development on Windows, else ~/development)
 if [ -z "$DEV_HOME" ]; then
   if [ "$_os" = windows ] && [ -d /c/development ]; then DEV_HOME=/c/development
+  elif [ -d /mnt/c/development ]; then DEV_HOME=/mnt/c/development   # WSL
   else DEV_HOME="$HOME/development"; fi
 fi
 export DEV_HOME

@@ -85,6 +85,7 @@ function ...   { Set-Location ../.. }
 # Development folder: $env:DEV_HOME, else C:\development or ~/development
 $env:DEV_HOME = if ($env:DEV_HOME) { $env:DEV_HOME }
                 elseif ($IsWindows -and (Test-Path 'C:\development')) { 'C:\development' }
+                elseif (Test-Path '/mnt/c/development') { '/mnt/c/development' }   # WSL
                 else { Join-Path $HOME 'development' }
 function dev { Set-Location $env:DEV_HOME }
 

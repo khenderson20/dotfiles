@@ -6,6 +6,11 @@ The installer puts small *stub* files where each tool looks for its config.
 Each stub loads the real file from this repo, so after installing, you just
 edit files here (and `git pull` on other machines) — no copying.
 
+![What install.ps1 wires up](docs/diagrams/install.svg)
+
+**[How it works →](docs/ARCHITECTURE.md)** the stack, the install wiring, a
+signed commit and push step by step, and the Windows vs macOS/Linux differences.
+
 ## Install
 
 Needs [PowerShell 7](https://aka.ms/powershell) (`pwsh`) and git.

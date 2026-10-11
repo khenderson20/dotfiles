@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="install-title install-desc" id="install-root">
+        <title id="install-title">What install.ps1 wires up</title>
+        <desc id="install-desc">Architecture diagram showing install.ps1 reading the dotfiles repo, backing up replaced files, and writing shell stubs and a git include that load the repo live, plus SSH, GnuPG and WSL files that are copied and need the installer re-run after edits.</desc>
+        <defs>
+      <style>#install-root { --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace; }
+      #install-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #install-root .diagram-container { width: 100%; overflow-x: auto; }
+      #install-root .diagram-container { overflow-x: visible; }</style>
+          <marker id="install-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="install-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          <marker id="install-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- =========================== ZONES =========================== -->
+        <!-- Zone A: live link (stubs + include read the repo every start) -->
+        <rect x="576" y="72" width="368" height="180" rx="8" fill="#2d3142" fill-opacity="0.02" stroke="#2d3142" stroke-opacity="0.10" stroke-width="0.8"/>
+        <rect x="604" y="76" width="232" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="720" y="85" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">LIVE · LOADS THE REPO EVERY START</text>
+
+        <!-- Zone B: copied (re-run install.ps1 after editing these) -->
+        <rect x="576" y="276" width="368" height="256" rx="8" fill="#2d3142" fill-opacity="0.02" stroke="#2d3142" stroke-opacity="0.10" stroke-width="0.8"/>
+        <rect x="604" y="280" width="232" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="720" y="289" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">COPIED · RE-RUN INSTALL AFTER EDITS</text>
+
+        <!-- =========================== ARROWS =========================== -->
+        <!-- Repo → install.ps1 -->
+        <line x1="200" y1="336" x2="296" y2="336" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#install-arrow)"/>
+
+        <!-- install.ps1 ports on right edge (x=456): 296, 316, 336, 356, 376 -->
+        <!-- P1 → Shell stubs (y=132), turn at x=480 -->
+        <path d="M 456,296 H 472 Q 480,296 480,288 V 140 Q 480,132 488,132 H 600" fill="none" stroke="#bf4520" stroke-width="1.2" marker-end="url(#install-arrow-accent)"/>
+        <!-- P2 → Git config (y=208), turn at x=528 -->
+        <path d="M 456,316 H 520 Q 528,316 528,308 V 216 Q 528,208 536,208 H 600" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#install-arrow)"/>
+        <!-- P3 → SSH config (y=336), straight -->
+        <line x1="456" y1="336" x2="600" y2="336" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#install-arrow)"/>
+        <!-- P4 → GnuPG (y=412), turn at x=512 -->
+        <path d="M 456,356 H 504 Q 512,356 512,364 V 404 Q 512,412 520,412 H 600" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#install-arrow)"/>
+        <!-- P5 → WSL (y=488), turn at x=496 (Windows only: dashed) -->
+        <path d="M 456,376 H 488 Q 496,376 496,384 V 480 Q 496,488 504,488 H 600" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#install-arrow)"/>
+        <!-- install.ps1 → Backups (down) -->
+        <line x1="376" y1="392" x2="376" y2="472" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#install-arrow)"/>
+
+        <!-- =========================== ARROW LABELS =========================== -->
+        <rect x="228" y="316" width="40" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="248" y="325" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">READS</text>
+
+        <rect x="524" y="112" width="40" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="544" y="121" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">STUBS</text>
+
+        <rect x="540" y="188" width="52" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="566" y="197" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">INCLUDE</text>
+
+        <rect x="548" y="316" width="36" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="566" y="325" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">COPY</text>
+
+        <rect x="528" y="392" width="60" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="558" y="401" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">GENERATE</text>
+
+        <rect x="532" y="468" width="36" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="550" y="477" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">COPY</text>
+
+        <rect x="384" y="424" width="64" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="416" y="433" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">BACKS UP</text>
+
+        <!-- =========================== NODES =========================== -->
+        <!-- Repo (store) -->
+        <rect x="40" y="304" width="160" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="40" y="304" width="160" height="64" rx="6" fill="#2d3142" fill-opacity="0.05" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="48" y="310" width="32" height="12" rx="2" fill="none" stroke="#4f5d75" stroke-opacity="0.50" stroke-width="0.8"/>
+        <text x="64" y="319" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">REPO</text>
+        <text x="120" y="340" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">dotfiles repo</text>
+        <text x="120" y="356" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">C:\development\dotfiles</text>
+
+        <!-- install.ps1 (focal) -->
+        <rect x="296" y="280" width="160" height="112" rx="6" fill="#f5f5f5"/>
+        <rect x="296" y="280" width="160" height="112" rx="6" fill="#bf4520" fill-opacity="0.08" stroke="#bf4520" stroke-width="1"/>
+        <rect x="304" y="286" width="28" height="12" rx="2" fill="none" stroke="#bf4520" stroke-opacity="0.50" stroke-width="0.8"/>
+        <text x="318" y="295" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PS1</text>
+        <text x="376" y="330" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">install.ps1</text>
+        <text x="376" y="346" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">pwsh 7 · any OS</text>
+        <text x="376" y="360" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">safe re-run · -WhatIf</text>
+
+        <!-- Backups (store) -->
+        <rect x="296" y="472" width="160" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="296" y="472" width="160" height="56" rx="6" fill="#2d3142" fill-opacity="0.05" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="304" y="478" width="28" height="12" rx="2" fill="none" stroke="#4f5d75" stroke-opacity="0.50" stroke-width="0.8"/>
+        <text x="318" y="487" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BAK</text>
+        <text x="376" y="504" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Backups</text>
+        <text x="376" y="519" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">~/.dotfiles-backup/</text>
+
+        <!-- T1 Shell & editor stubs -->
+        <rect x="600" y="104" width="320" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="600" y="104" width="320" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="608" y="110" width="24" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.40" stroke-width="0.8"/>
+        <text x="620" y="119" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SH</text>
+        <text x="760" y="131" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Shell &amp; editor stubs</text>
+        <text x="760" y="147" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">$PROFILE · ~/.bashrc · ~/.zshrc · ~/.vimrc</text>
+
+        <!-- T2 Git config -->
+        <rect x="600" y="180" width="320" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="600" y="180" width="320" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="608" y="186" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.40" stroke-width="0.8"/>
+        <text x="622" y="195" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GIT</text>
+        <text x="760" y="207" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Git config</text>
+        <text x="760" y="223" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">~/.gitconfig → git/gitconfig + OS file</text>
+
+        <!-- T3 SSH config -->
+        <rect x="600" y="308" width="320" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="600" y="308" width="320" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="608" y="314" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.40" stroke-width="0.8"/>
+        <text x="622" y="323" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SSH</text>
+        <text x="760" y="335" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">SSH config</text>
+        <text x="760" y="351" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">~/.ssh/dotfiles.config · gpg-auth .pub</text>
+
+        <!-- T4 GnuPG agent -->
+        <rect x="600" y="384" width="320" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="600" y="384" width="320" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="608" y="390" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.40" stroke-width="0.8"/>
+        <text x="622" y="399" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GPG</text>
+        <text x="760" y="411" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">GnuPG agent</text>
+        <text x="760" y="427" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">gpg-agent.conf (per OS) · sshcontrol</text>
+
+        <!-- T5 WSL settings (Windows only: optional) -->
+        <rect x="600" y="460" width="320" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="600" y="460" width="320" height="56" rx="6" fill="#2d3142" fill-opacity="0.02" stroke="#2d3142" stroke-opacity="0.20" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="608" y="466" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.22" stroke-width="0.8"/>
+        <text x="622" y="475" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WSL</text>
+        <text x="760" y="487" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">WSL settings</text>
+        <text x="760" y="503" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">~/.wslconfig · Windows only</text>
+
+        <!-- =========================== LEGEND =========================== -->
+        <line x1="40" y1="552" x2="920" y2="552" stroke="#2d3142" stroke-opacity="0.10" stroke-width="0.8"/>
+        <text x="40" y="580" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <rect x="120" y="572" width="14" height="10" rx="2" fill="#bf4520" fill-opacity="0.08" stroke="#bf4520" stroke-width="1"/>
+        <text x="140" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Installer</text>
+
+        <rect x="232" y="572" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="252" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">File in your home folder</text>
+
+        <rect x="400" y="572" width="14" height="10" rx="2" fill="#2d3142" fill-opacity="0.05" stroke="#4f5d75" stroke-width="1"/>
+        <text x="420" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Folder of files</text>
+
+        <rect x="528" y="572" width="14" height="10" rx="2" fill="#2d3142" fill-opacity="0.02" stroke="#2d3142" stroke-opacity="0.20" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="548" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Windows only</text>
+
+        <line x1="648" y1="577" x2="676" y2="577" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#install-arrow)"/>
+        <text x="684" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Writes / reads</text>
+
+        <line x1="784" y1="577" x2="812" y2="577" stroke="#bf4520" stroke-width="1.2" marker-end="url(#install-arrow-accent)"/>
+        <text x="820" y="580" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Main path</text>
+      </svg>

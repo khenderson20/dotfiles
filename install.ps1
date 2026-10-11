@@ -42,8 +42,9 @@ function Backup-File([string]$Path) {
     Write-Host "  backed up $Path" -ForegroundColor DarkGray
 }
 
-# Writes $Content to $Path (LF line endings, UTF-8 no BOM) unless it's already identical
-function Set-ManagedFile([string]$Path, [string]$Content) {
+# Writes $Content to $Path (LF line endings, UTF-8 no BOM) unless it's already identical.
+# -Private: owner-only permissions on macOS/Linux (for ~/.ssh and ~/.gnupg files).
+function Set-ManagedFile([string]$Path, [string]$Content, [switch]$Private) {
     $Content = $Content -replace "`r`n", "`n"
     if ((Test-Path -LiteralPath $Path) -and ((Get-Content -Raw -LiteralPath $Path) -replace "`r`n", "`n") -eq $Content) {
         Write-Host "  ok        $Path" -ForegroundColor DarkGray
@@ -55,6 +56,7 @@ function Set-ManagedFile([string]$Path, [string]$Content) {
             $null = New-Item -ItemType Directory -Force (Split-Path $Path)
             [IO.File]::WriteAllText($Path, $Content, [Text.UTF8Encoding]::new($false))
             Write-Host "  wrote     $Path" -ForegroundColor Green
+            if (-not $IsWindows -and $Private) { chmod 600 $Path }
         } catch [UnauthorizedAccessException] {
             # Usually Windows Defender's Controlled Folder Access guarding Documents
             Write-Host "  BLOCKED   $Path" -ForegroundColor Red
@@ -63,6 +65,15 @@ function Set-ManagedFile([string]$Path, [string]$Content) {
     }
 }
 $script:Blocked = @()
+
+# ~/.ssh and ~/.gnupg should be owner-only on macOS/Linux: gpg warns about an
+# unsafe homedir on every command otherwise, and ssh refuses config and key
+# files other users can write. (On Windows they inherit the profile's ACL.)
+function New-PrivateDir([string]$Path) {
+    if ($IsWindows -or $WhatIfPreference) { return }
+    $null = New-Item -ItemType Directory -Force $Path
+    chmod 700 $Path
+}
 
 # --- PowerShell -----------------------------------------------------------
 Write-Host 'PowerShell'
@@ -121,38 +132,40 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 # --- ssh ------------------------------------------------------------------
 Write-Host 'ssh'
 $sshDir = Join-Path $HOME '.ssh'
+New-PrivateDir $sshDir
 foreach ($pub in Get-ChildItem (Join-Path $Repo 'ssh') -Filter '*.pub') {
     Set-ManagedFile (Join-Path $sshDir $pub.Name) (Get-Content -Raw $pub.FullName)
 }
 # Copied, not included from the repo: ssh rejects config files other users can
 # write, and folders like C:\development grant that to Authenticated Users.
 # Re-run install.ps1 after editing ssh/config.
-Set-ManagedFile (Join-Path $sshDir 'dotfiles.config') (Get-Content -Raw (Join-Path $Repo 'ssh/config'))
+Set-ManagedFile (Join-Path $sshDir 'dotfiles.config') (Get-Content -Raw (Join-Path $Repo 'ssh/config')) -Private
 $sshConfig = Join-Path $sshDir 'config'
 $includeLine = 'Include ~/.ssh/dotfiles.config'
 $existing = if (Test-Path $sshConfig) { Get-Content -Raw $sshConfig } else { '' }
 if ($existing -notmatch [regex]::Escape($includeLine)) {
     # Include must come before any Host block to apply to every host
-    Set-ManagedFile $sshConfig "# Shared hosts from the dotfiles repo (first match wins, so these take priority)`n$includeLine`n`n$existing"
+    Set-ManagedFile $sshConfig "# Shared hosts from the dotfiles repo (first match wins, so these take priority)`n$includeLine`n`n$existing" -Private
 } else { Write-Host "  ok        $sshConfig" -ForegroundColor DarkGray }
 
 # --- gnupg ----------------------------------------------------------------
 Write-Host 'gnupg'
 if (Get-Command gpgconf -ErrorAction SilentlyContinue) {
     $gnupgHome = (gpgconf --list-dirs homedir) -replace '%3a', ':'
+    New-PrivateDir $gnupgHome
     $agentConf = (Get-Content -Raw (Join-Path $Repo 'gnupg/gpg-agent.conf')).TrimEnd() + "`n`n"
     $agentConf += if ($IsWindows) { "enable-win32-openssh-support`n" } else { "enable-ssh-support`n" }
     if ($IsMacOS -and ($pinentry = Get-Command pinentry-mac -ErrorAction SilentlyContinue)) {
         $agentConf += "pinentry-program $($pinentry.Source)`n"
     }
-    Set-ManagedFile (Join-Path $gnupgHome 'gpg-agent.conf') $agentConf
+    Set-ManagedFile (Join-Path $gnupgHome 'gpg-agent.conf') $agentConf -Private
 
     $sshcontrol = Join-Path $gnupgHome 'sshcontrol'
     $have = if (Test-Path $sshcontrol) { Get-Content $sshcontrol } else { @() }
     $want = Get-Content (Join-Path $Repo 'gnupg/sshcontrol') | Where-Object { $_ -match '^\s*!?[0-9A-F]{40}' }
     $missing = $want | Where-Object { ($_ -split '\s+')[0] -notin ($have | ForEach-Object { ($_.Trim() -split '\s+')[0] }) }
     if ($missing) {
-        Set-ManagedFile $sshcontrol ((($have + $missing) -join "`n") + "`n")
+        Set-ManagedFile $sshcontrol ((($have + $missing) -join "`n") + "`n") -Private
     } else { Write-Host "  ok        $sshcontrol" -ForegroundColor DarkGray }
 
     if (-not $WhatIfPreference) { gpg-connect-agent reloadagent /bye *> $null }
