@@ -8,6 +8,8 @@
 # =====================================================================
 
 $sw = [Diagnostics.Stopwatch]::StartNew()
+# Elapsed ms after each section; a slow start (>1s) reports the worst ones
+$profileMarks = [ordered]@{}
 $sep = [IO.Path]::PathSeparator
 
 # --------------------------------------------------
@@ -37,17 +39,23 @@ foreach ($dir in @(
         $env:PATH = "$env:PATH$sep$dir"
     }
 }
+$profileMarks['setup'] = $sw.ElapsedMilliseconds
 
 # --------------------------------------------------
 #  PSReadLine: history-based suggestions and prefix search
 # --------------------------------------------------
-# (skipped when output is redirected, e.g. scripts or tools running pwsh)
-if (-not [Console]::IsOutputRedirected -and (Get-Module -ListAvailable PSReadLine)) {
-    Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView -HistoryNoDuplicates
-    Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
-    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-    Set-PSReadLineKeyHandler -Key Tab       -Function MenuComplete
+# (skipped when output is redirected, e.g. scripts or tools running pwsh).
+# Called directly rather than checked with Get-Module -ListAvailable, which
+# scans every module folder and is slow on a cold start.
+if (-not [Console]::IsOutputRedirected) {
+    try {
+        Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView -HistoryNoDuplicates -ErrorAction Stop
+        Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
+        Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+        Set-PSReadLineKeyHandler -Key Tab       -Function MenuComplete
+    } catch { }
 }
+$profileMarks['psreadline'] = $sw.ElapsedMilliseconds
 
 # --------------------------------------------------
 #  Tool init scripts, cached and regenerated only when the tool's
@@ -59,13 +67,21 @@ $initCacheDir = if ($IsWindows) { "$env:LOCALAPPDATA/pwsh-init-cache" }
 
 function Get-CachedInit {
     param([string]$Tool, [scriptblock]$Generate)
+    $cache = Join-Path $initCacheDir "$Tool.ps1"
+    # Fast path: the cache's first line records where the tool was found, so
+    # a startup checks that one file instead of searching every PATH folder
+    # (PATH searches are what make a cold start slow)
+    if (Test-Path $cache) {
+        $exePath = (Get-Content $cache -TotalCount 1) -replace '^# source: '
+        if ($exePath -and (Test-Path -LiteralPath $exePath) -and
+            (Get-Item -LiteralPath $exePath).LastWriteTime -le (Get-Item $cache).LastWriteTime) {
+            return $cache
+        }
+    }
     $exe = Get-Command $Tool -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $exe) { return $null }
-    $cache = Join-Path $initCacheDir "$Tool.ps1"
-    if (-not (Test-Path $cache) -or (Get-Item $cache).LastWriteTime -lt (Get-Item $exe.Source).LastWriteTime) {
-        $null = New-Item -ItemType Directory -Force $initCacheDir
-        & $Generate | Out-File $cache -Encoding utf8
-    }
+    $null = New-Item -ItemType Directory -Force $initCacheDir
+    @("# source: $($exe.Source)") + @(& $Generate) | Out-File $cache -Encoding utf8
     $cache
 }
 
@@ -73,6 +89,7 @@ function Get-CachedInit {
 if ($init = Get-CachedInit zoxide { zoxide init powershell }) { . $init }
 # GitHub CLI tab completion
 if ($init = Get-CachedInit gh { gh completion -s powershell }) { . $init }
+$profileMarks['zoxide + gh'] = $sw.ElapsedMilliseconds
 
 # --------------------------------------------------
 #  Small helpers
@@ -90,19 +107,19 @@ $env:DEV_HOME = if ($env:DEV_HOME) { $env:DEV_HOME }
 function dev { Set-Location $env:DEV_HOME }
 
 # --------------------------------------------------
-#  GPG agent: commit signing everywhere, and SSH keys for ssh
-#  (Windows uses gpg-agent's OpenSSH pipe, so no SSH_AUTH_SOCK there)
+#  GPG agent: commit signing everywhere, and SSH keys for ssh.
+#  macOS/Linux: point ssh at the agent's socket and pinentry at this
+#  terminal. Windows needs neither (ssh uses gpg-agent's named pipe), and
+#  starts the agent in the background instead (see the Windows section).
 # --------------------------------------------------
-if (Get-Command gpg-connect-agent -ErrorAction SilentlyContinue) {
-    if (-not $IsWindows) {
-        $env:GPG_TTY = (tty)
-        $env:SSH_AUTH_SOCK = (gpgconf --list-dirs agent-ssh-socket)
-    }
-    # Starts the agent if it isn't running; quiet when it already is.
-    # updatestartuptty points pinentry at this terminal (no-op on Windows).
+if (-not $IsWindows -and (Get-Command gpg-connect-agent -ErrorAction SilentlyContinue)) {
+    $env:GPG_TTY = (tty)
+    $env:SSH_AUTH_SOCK = (gpgconf --list-dirs agent-ssh-socket)
+    # Starts the agent if it isn't running; quiet when it already is
     gpg-connect-agent updatestartuptty /bye *> $null
     if ($LASTEXITCODE -ne 0) { Write-Warning "gpg-agent did not start" }
 }
+$profileMarks['gpg-agent'] = $sw.ElapsedMilliseconds
 
 function Get-GpgKeyInfo {
     gpg --list-secret-keys --keyid-format=long
@@ -127,11 +144,17 @@ function y {
 #  Windows only
 # ==================================================
 if ($IsWindows) {
-    # Chocolatey tab completion: loaded once the prompt is idle,
-    # so it doesn't delay startup (~300ms)
-    if (Test-Path "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1") {
-        $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
-            Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1" -DisableNameChecking -Global -ErrorAction SilentlyContinue
+    # Done once the prompt is idle, so they don't delay it:
+    # - Chocolatey tab completion (~300ms to import)
+    # - starting gpg-agent: gpg starts it on demand, but ssh.exe can't, so
+    #   SSH to GitHub needs it running (~0.1s warm, much more on a cold start)
+    $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
+        $chocoProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        if (Test-Path $chocoProfile) {
+            Import-Module $chocoProfile -DisableNameChecking -Global -ErrorAction SilentlyContinue
+        }
+        if (Get-Command gpg-connect-agent -ErrorAction SilentlyContinue) {
+            gpg-connect-agent /bye *> $null
         }
     }
 
@@ -173,15 +196,27 @@ if ($IsWindows) {
         }
     }
 }
+$profileMarks['windows extras'] = $sw.ElapsedMilliseconds
 
 # --------------------------------------------------
 #  Machine-specific additions (not in the repo): ~/.profile.local.ps1
 # --------------------------------------------------
 $localProfile = Join-Path $HOME '.profile.local.ps1'
 if (Test-Path $localProfile) { . $localProfile }
+$profileMarks['rest'] = $sw.ElapsedMilliseconds
 
 # --------------------------------------------------
 #  Final Timing Output
 # --------------------------------------------------
 $sw.Stop()
 Write-Host ("PowerShell profile loaded in {0:N2}s" -f $sw.Elapsed.TotalSeconds) -ForegroundColor Gray
+if ($sw.ElapsedMilliseconds -gt 1000) {
+    $prev = 0
+    $sections = foreach ($name in $profileMarks.Keys) {
+        [pscustomobject]@{ Name = $name; Ms = $profileMarks[$name] - $prev }
+        $prev = $profileMarks[$name]
+    }
+    $slowest = $sections | Sort-Object Ms -Descending | Select-Object -First 3 |
+        ForEach-Object { '{0} {1:N2}s' -f $_.Name, ($_.Ms / 1000) }
+    Write-Host "  slowest: $($slowest -join ', ')" -ForegroundColor DarkGray
+}
