@@ -18,6 +18,11 @@ $sep = [IO.Path]::PathSeparator
 [Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 # --------------------------------------------------
+#  Repo location, like $DOTFILES in bash and zsh
+# --------------------------------------------------
+$env:DOTFILES = Split-Path $PSScriptRoot
+
+# --------------------------------------------------
 #  Modules kept in this repo (autoload, e.g. Show-Calendar)
 # --------------------------------------------------
 $repoModules = Join-Path $PSScriptRoot 'Modules'
