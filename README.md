@@ -61,11 +61,20 @@ Keep these out of the repo, in files the configs load if present:
 2. **Import your GPG secret key** from your offline backup — it is deliberately *not* in this repo:
    `gpg --import <backup>.asc`, then `gpg --edit-key 01EEDF3610103724 trust` (ultimate).
    Without it, commit signing and SSH to GitHub won't work.
-3. Clone this repo and run `./install.ps1`.
-4. Windows: reinstall apps if you want them. The lists in `packages/` are
+3. Windows: turn off Windows' own SSH agent. It listens on the same named pipe
+   gpg-agent uses for SSH, and while it runs ssh never sees your GPG key. In an
+   admin terminal: `Stop-Service ssh-agent; Set-Service ssh-agent -StartupType Disabled`.
+4. Clone this repo and run `./install.ps1` from PowerShell 7 (`pwsh`).
+5. Windows: reinstall apps if you want them. The lists in `packages/` are
    git-ignored, so they aren't on GitHub; copy them over from your private
    backup (or the old machine) first, then:
    `winget import packages/winget.json`, `scoop import packages/scoop.json`,
    `choco install packages/choco.config`.
    To refresh the lists: `winget export -o packages/winget.json`, `scoop export > packages/scoop.json`, `choco export packages/choco.config`.
-5. Test: `ssh -T git@github.com` should greet you by username.
+6. Test: `ssh -T git@github.com` should greet you by username.
+   If it says `Load key "...gpg-auth-....pub": invalid format` and
+   `Permission denied (publickey)`, ssh isn't getting the key from gpg-agent.
+   `ssh-add -L` should list it; if not, check step 3, then restart the agent
+   with `gpgconf --kill gpg-agent` and `gpgconf --launch gpg-agent`. Prompt
+   themes that manage ssh-agent (e.g. pshazz's `ssh` plugin) start the
+   Windows agent again, so turn that part off.

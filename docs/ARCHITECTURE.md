@@ -53,6 +53,7 @@ has expired (1 hour since last use, 24 hours max).
 | Everyday shells | PowerShell 7, Git Bash | zsh (macOS default), bash |
 | SSH client git uses | `C:\Windows\System32\OpenSSH\ssh.exe` (`core.sshCommand`) | system `ssh` |
 | How ssh reaches gpg-agent | named pipe (`enable-win32-openssh-support`) | socket in `SSH_AUTH_SOCK` (`enable-ssh-support`) |
+| Built-in ssh-agent | `ssh-agent` service must be **disabled** (it uses the same pipe) | not used |
 | `gpg` git runs | `C:/Program Files/GnuPG/bin/gpg.exe` (not Git's bundled copy) | `gpg` |
 | Passphrase prompt | Gpg4win pinentry window | `pinentry-mac`, or the terminal via `GPG_TTY` |
 | GnuPG home | `%APPDATA%\gnupg` | `~/.gnupg` (installer makes it owner-only) |

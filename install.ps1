@@ -14,13 +14,16 @@
   - ssh:   ssh/config is copied to ~/.ssh/dotfiles.config, which ~/.ssh/config
            includes at the top; public key files are copied to ~/.ssh.
   - gnupg: gpg-agent.conf is generated for this OS; missing sshcontrol
-           lines are added. (Your secret keys are never in this repo.)
+           lines are added; the agent is restarted to pick them up.
+           (Your secret keys are never in this repo.)
   - Windows: .wslconfig.
 
 .EXAMPLE
   ./install.ps1 -WhatIf     # show what would change
   ./install.ps1             # apply
 #>
+# Windows PowerShell 5.1 has no $IsWindows, so it would set up for Linux
+#Requires -Version 7.0
 [CmdletBinding(SupportsShouldProcess)]
 param()
 
@@ -168,7 +171,21 @@ if (Get-Command gpgconf -ErrorAction SilentlyContinue) {
         Set-ManagedFile $sshcontrol ((($have + $missing) -join "`n") + "`n") -Private
     } else { Write-Host "  ok        $sshcontrol" -ForegroundColor DarkGray }
 
-    if (-not $WhatIfPreference) { gpg-connect-agent reloadagent /bye *> $null }
+    # Restart rather than reloadagent: the agent only opens its SSH listener
+    # when it starts, so one already running (e.g. from gpg --import) would
+    # ignore the enable-*-ssh-support line. Clears cached passphrases.
+    if (-not $WhatIfPreference) {
+        gpgconf --kill gpg-agent
+        gpgconf --launch gpg-agent
+    }
+
+    # Windows' own OpenSSH agent service uses the same named pipe; while it
+    # holds it, ssh asks that agent and never sees the GPG key
+    $sshAgentSvc = if ($IsWindows) { Get-Service ssh-agent -ErrorAction SilentlyContinue }
+    if ($sshAgentSvc -and $sshAgentSvc.StartType -ne 'Disabled') {
+        Write-Warning ("The Windows ssh-agent service is enabled and competes with gpg-agent for SSH. " +
+            "In an admin terminal run: Stop-Service ssh-agent; Set-Service ssh-agent -StartupType Disabled. Then re-run install.ps1.")
+    }
 } else { Write-Warning 'gpgconf not found; skipped (install GnuPG / Gpg4win, then re-run)' }
 
 # --- Windows extras -------------------------------------------------------
